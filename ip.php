@@ -1,29 +1,27 @@
 <?php
-
-if (!empty($_SERVER['HTTP_CLIENT_IP']))
-    {
-      $ipaddress = $_SERVER['HTTP_CLIENT_IP']."\r\n";
+// ip.php - capture visitor IP and user agent
+function getClientIP() {
+    $headers = [
+        'HTTP_CLIENT_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_FORWARDED',
+        'HTTP_FORWARDED_FOR',
+        'HTTP_FORWARDED',
+        'REMOTE_ADDR'
+    ];
+    foreach ($headers as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ips = explode(',', $_SERVER[$key]);
+            return trim($ips[0]);
+        }
     }
-elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-    {
-      $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR']."\r\n";
-    }
-else
-    {
-      $ipaddress = $_SERVER['REMOTE_ADDR']."\r\n";
-    }
-$useragent = " User-Agent: ";
-$browser = $_SERVER['HTTP_USER_AGENT'];
+    return 'UNKNOWN';
+}
 
+$ip = getClientIP();
+$useragent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown UA';
+$date = date('Y-m-d H:i:s');
 
-$file = 'ip.txt';
-$victim = "IP: ";
-$fp = fopen($file, 'a');
-
-fwrite($fp, $victim);
-fwrite($fp, $ipaddress);
-fwrite($fp, $useragent);
-fwrite($fp, $browser);
-
-
-fclose($fp);
+$log = "[$date] IP: $ip | User-Agent: $useragent\n";
+file_put_contents('ip.txt', $log, FILE_APPEND);
+?>
